@@ -113,6 +113,7 @@ scores = 1 - scipy.spatial.distance.cdist(s1_embed, s2_embed, "cosine")[0]
 #
 ############################################################################################
 
+logging.info("Step 3: Train bi-encoder ({}) with both STSbenchmark and labeled AllNlI".format(model_name))
 
 # Convert the dataset to a DataLoader ready for training
 logging.info("Read STSbenchmark train dataset")
