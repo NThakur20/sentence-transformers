@@ -6,16 +6,16 @@ the model is evaluated on the STS benchmark dataset
 There are three important steps which are followed - 
 
 1. Cross-encoder is trained upon the STS dataset
-2. Cross-encoder is used to label AllNLI dataset
+2. Cross-encoder is used to weakly label AllNLI dataset
 3. Augmented SBERT (Bi-encoder) is finally trained on both STS dataset + labeled AllNLI dataset
 
-For more details you can refer - 
+For more details you can refer - cite paper
 
 Usage:
-python training_augmented_sbert_allnli.py
+python train_sts_allnli.py
 
 OR
-python training_augmented_sbert_allnli.py pretrained_transformer_model_name
+python train_sts_allnli.py pretrained_transformer_model_name
 """
 from torch.utils.data import DataLoader
 import math
@@ -43,8 +43,8 @@ batch_size = 16
 num_epochs = 1
 nli_reader = NLIDataReader('../datasets/AllNLI')
 sts_reader = STSBenchmarkDataReader('../datasets/stsbenchmark', normalize_scores=True)
-cross_encoder_model_save_path = 'output/cross_encoder_sts_allnli_'+model_name.replace("/", "-")+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-aug_sbert_model_save_path = 'output/augmented_sbert_sts_allnli_'+model_name.replace("/", "-")+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+cross_encoder_model_save_path = 'output/cross_encoder/sts_allnli_'+model_name.replace("/", "-")+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+aug_sbert_model_save_path = 'output/augmented_sbert/sts_allnli_'+model_name.replace("/", "-")+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
 word_embedding_model = models.Transformer(model_name)
@@ -64,7 +64,7 @@ aug_sbert_model = SentenceTransformer(modules=[word_embedding_model, pooling_mod
 #
 #####################################################
 
-logging.info("Step 1:   Train cross-encoder ({}) with STSbenchmark".format(model_name))
+logging.info("Step 1: Train cross-encoder ({}) with STSbenchmark".format(model_name))
 
 # Convert the dataset to a DataLoader ready for training
 logging.info("Read STSbenchmark train dataset")
@@ -99,7 +99,7 @@ cross_encoder_model.fit(train_objectives=[(train_dataloader, train_loss)],
 #
 ########################################################
 
-logging.info("Step 2:   Label AllNLI silver dataset with cross-encoder ({})".format(model_name))
+logging.info("Step 2: Label AllNLI silver dataset with cross-encoder ({})".format(model_name))
 
 # embedding pair of sentences (s1,s2) present in AllNLI corpus
 s1, s2 = map(list, zip(*[(input_ex.texts[0], input_ex.texts[1]) for input_ex in nli_reader.get_examples('train.gz')]))
