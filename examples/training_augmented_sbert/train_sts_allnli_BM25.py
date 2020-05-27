@@ -1,27 +1,26 @@
 """
-The code shows how to train Augmented SBERT on the STS + (AllNLI) dataset sampled using BM25 Algorithm
-with cosine similarity loss function. At every 1000 training steps, 
-the model is evaluated on the STS benchmark dataset
+The code shows how to train Augmented SBERT (AugSBERT) on the STS + (AllNLI) 
+dataset sampled using BM25 algorithm with cosine similarity loss function. 
+At every 1000 training steps, the model is evaluated on the STS benchmark dataset.
 
 There are three important steps which are followed - 
+    1. Cross-encoder is trained upon the STS dataset
+    2. Cross-encoder is used to weakly label BM25 sampled AllNLI dataset 
+    3. Bi-encoder is finally trained on both STS dataset + labeled AllNLI dataset
 
-1. Cross-encoder is trained upon the STS dataset
-2. Cross-encoder is used to label BM25 sampled AllNLI dataset 
-3. Bi-encoder is finally trained on both STS dataset + labeled AllNLI dataset
+For more details you can refer - cite paper
 
-For more details you can refer -
-
-For BM25 algorithm, we are using ElasticSearch (https://elasticsearch-py.readthedocs.io/)
+For BM25 algorithm, we are efficient, widely used and popular
+ElasticSearch (https://elasticsearch-py.readthedocs.io/)
 Install the elasticsearch package with pip: pip install elasticsearch  
 
 Usage:
-python train_augmented_sbert_BM25.py
+python train_sts_allnli_BM25.py
 
 OR
-python train_augmented_sbert_BM25.py pretrained_transformer_model_name
+python train_sts_allnli_BM25.py pretrained_transformer_model_name
 """
 from torch.utils.data import DataLoader
-import math
 from sentence_transformers import models, losses
 from sentence_transformers import SentencesDataset, LoggingHandler, SentenceTransformer
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
@@ -50,8 +49,8 @@ batch_size = 16
 num_epochs = 1
 nli_reader = NLIDataReader('../datasets/AllNLI')
 sts_reader = STSBenchmarkDataReader('../datasets/stsbenchmark', normalize_scores=True)
-cross_encoder_model_save_path = 'output/BM25_cross_encoder_sts_allnli_'+model_name.replace("/", "-")+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-aug_sbert_model_save_path = 'output/BM25_augmented_sbert_sts_allnli_'+model_name.replace("/", "-")+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+cross_encoder_model_save_path = 'output/cross_encoder/BM25_sts_allnli_'+model_name.replace("/", "-")+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+aug_sbert_model_save_path = 'output/augmented_sbert/BM25_sts_allnli_'+model_name.replace("/", "-")+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
 word_embedding_model = models.Transformer(model_name)
@@ -72,7 +71,7 @@ es = Elasticsearch()
 #
 #####################################################
 
-logging.info("Step 1:   Train cross-encoder ({}) with STSbenchmark".format(model_name))
+logging.info("Step 1: Train cross-encoder ({}) with STSbenchmark".format(model_name))
 
 # Convert the dataset to a DataLoader ready for training
 logging.info("Read STSbenchmark train dataset")
@@ -96,7 +95,6 @@ logging.info("Warmup-steps: {}".format(warmup_steps))
 cross_encoder_model.fit(train_objectives=[(train_dataloader, train_loss)],
           evaluator=evaluator,
           epochs=num_epochs,
-          steps_per_epoch=1,
           evaluation_steps=1000,
           warmup_steps=warmup_steps, 
           output_path=cross_encoder_model_save_path)
@@ -108,41 +106,39 @@ cross_encoder_model.fit(train_objectives=[(train_dataloader, train_loss)],
 #
 ######################################################################################
 
-logging.info("Step 2: Label AllNLI silver dataset with cross-encoder ({})".format(model_name))
+logging.info("Step 2: Setting up ElasticSearch for sampling of AllNLI dataset using BM25 \
+                        and weakly labeling using cross-encoder")
 
+reader = nli_reader.get_examples('train.gz') # AllNlI dataset
 top_k = 3 # you can set parameter for k here: top k embeddings to be retrived
 index_name = "allnli" # index-name should be in lowercase
 
-# Embedding pair of sentences (s1,s2) present in AllNLI corpus
-s1, s2 = map(list, zip(*[(input_ex.texts[0], input_ex.texts[1]) for input_ex in sts_reader.get_examples('sts-test.csv')]))
-sentences = list(set(s1 + s2))
-logging.info("Unique sentences found in AllNLI: {}".format(len(sentences)))
-
-# Get embeddings for all sentences using cross-encoder
+# unique sentences present in AllNLI corpus
+sentences = list(set(sum([(input_ex.texts[0], input_ex.texts[1]) for input_ex in reader], ())))
+# weakly label all unique sentences using cross-encoder
 embeddings = dict(zip(sentences, cross_encoder_model.encode(sentences, batch_size=batch_size)))
 
 # Ignore 400 cause by IndexAlreadyExistsException when creating an index
 es.indices.create(index=index_name, ignore=[400]) 
 
-# BM25 - Indexing sentences
+# indexing all sentences
 for _id, sentence in enumerate(sentences):
     response = es.index(
         index = index_name,
         id = _id,
         body = {"sentence" : sentence })
 
-logging.info("Indexing complete for {} sentences".format(len(sentences)))
+logging.info("Indexing complete for {} unique sentences".format(len(sentences)))
 
-s1 = []
-s2 = []
-duplicates = [] # remove duplicates i.e. to avoid combinations like (s2,s1) for (s1,s2)
+# remove duplicates i.e. to avoid indentical sentence pairs like (s2,s1) for (s1,s2)
+s1, s2, duplicates = ([] for i in range(3))
 
-# BM25 - Retrieval of top-k sentences 
+# retrieval of top-k sentences 
 for id, sentence in enumerate(sentences):
     if ((id < 10000 and id % 1000 == 0) or (id < 100000 and id % 10000 == 0) or id % 100000 == 0):
-        logging.info("Completed retrieval of {} sentences".format(id))
+        logging.info("Completed retrieval of {} unique sentences".format(id))
 
-    res = es.search(index=index_name, body={"query": {"match": {"sentence": sentence} } }, size=top_k)
+    res = es.search(index = index_name, body={"query": {"match": {"sentence": sentence} } }, size = top_k)
     for hit in res['hits']['hits']:
         if str(id) != hit["_id"] and (hit['_id'], str(id)) not in set(duplicates):
             s1.append(sentence)
@@ -157,7 +153,7 @@ scores = 1 - scipy.spatial.distance.cdist([embeddings[s] for s in s1], [embeddin
 #
 ############################################################################################
 
-logging.info("Step 3: Train bi-encoder ({}) with both STSbenchmark and BM25 sampled and labeled AllNlI".format(model_name))
+logging.info("Step 3: Train bi-encoder ({}) with both STSbenchmark and labeled AllNlI".format(model_name))
 
 # Convert the dataset to a DataLoader ready for training
 logging.info("Read STSbenchmark train dataset")
@@ -188,7 +184,6 @@ train_objectives = [(train_dataloader, train_loss), (silver_dataloader, silver_l
 aug_sbert_model.fit(train_objectives=train_objectives,
           evaluator=evaluator,
           epochs=num_epochs,
-          steps_per_epoch=1,
           evaluation_steps=1000,
           warmup_steps=warmup_steps,
           output_path=aug_sbert_model_save_path
