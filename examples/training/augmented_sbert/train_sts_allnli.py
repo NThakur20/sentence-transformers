@@ -19,6 +19,7 @@ python train_sts_allnli.py pretrained_transformer_model_name
 """
 from torch.utils.data import DataLoader
 import math
+from simpletransformers.classification import ClassificationModel, ClassificationArgs
 from sentence_transformers import models, losses
 from sentence_transformers import SentencesDataset, LoggingHandler, SentenceTransformer
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
@@ -46,6 +47,23 @@ sts_reader = STSBenchmarkDataReader('../datasets/stsbenchmark', normalize_scores
 cross_encoder_model_save_path = 'output/cross_encoder/sts_allnli_'+model_name.replace("/", "-")+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 aug_sbert_model_save_path = 'output/augmented_sbert/sts_allnli_'+model_name.replace("/", "-")+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
+
+###### Cross-encoder (simpletransformers) ######
+# Enabling regression
+# Setting optional model configuration
+logging.info("Loading cross-encoder: {} model.....".format(model_name))
+model_args = ClassificationArgs()
+
+# Enabling regression
+# Setting optional model configuration
+model_args.num_train_epochs = num_epochs
+model_args.regression = True
+
+cross_encoder_model = ClassificationModel("bert", model_name)
+
+
+###### Bi-encoder (sentence-transformers) ######
+logging.info("Loading cross-encoder: {} model.....".format(model_name))
 # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
 word_embedding_model = models.Transformer(model_name)
 
@@ -55,16 +73,14 @@ pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension
                                pooling_mode_cls_token=False,
                                pooling_mode_max_tokens=False)
 
-cross_encoder_model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
-aug_sbert_model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
-
+bi_encoder_model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 #####################################################
 #
 # Step 1: Train cross-encoder model with STSbenchmark
 #
 #####################################################
 
-logging.info("Step 1: Train cross-encoder ({}) with STSbenchmark".format(model_name))
+logging.info("Step 1: Train cross-encoder: ({}) with STSbenchmark".format(model_name))
 
 # Convert the dataset to a DataLoader ready for training
 logging.info("Read STSbenchmark train dataset")
