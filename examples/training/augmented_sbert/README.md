@@ -10,7 +10,7 @@ For more details, refer to our publication - [Augmented SBERT: Data Augmentation
 There are two major use-cases for the Augmented SBERT approach for pairwise-sentence regression or classification tasks - 
 
 ### Limited or small annonated datasets (few annotations)
-![Augmented SBERT (In-Domain)](https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/docs/img/augmented_sbert_indomain.png)
+![Augmented SBERT (In-Domain)](https://raw.githubusercontent.com/Nthakur20/sentence-transformers/master/docs/img/augsbert-indomain.png)
 
 We apply the Augmented SBERT (<b>In-domain</b>) strategy to solve the Issue, it involves majorly three steps - 
 
