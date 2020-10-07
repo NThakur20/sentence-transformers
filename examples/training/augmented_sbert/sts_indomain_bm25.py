@@ -4,7 +4,7 @@ The script shows how to train Augmented SBERT (In-Domain) strategy for STSb data
 Sentence-pair combinations are sampled via the BM25 algorithm.
 
 Cross-encoder aka BERT uses simpletransformers (pip install simpletransformers)
-Bi-Encoder aka SBERT uses sentence-transforms (pip install sentence-transformers)
+Bi-Encoder aka SBERT uses sentence-transformers (pip install sentence-transformers)
 BM25 sampling uses elasticsearch (pip install elasticsearch)
 
 
@@ -27,6 +27,7 @@ from simpletransformers.classification import ClassificationModel
 from sentence_transformers import models, losses, util
 from sentence_transformers import SentencesDataset, LoggingHandler, SentenceTransformer
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
+from sentence_transformers.readers import InputExample
 from elasticsearch import Elasticsearch
 from datetime import datetime
 from scipy.stats import pearsonr, spearmanr
@@ -87,6 +88,7 @@ train_args={
     'max_seq_length': max_seq_length,
     'evaluate_during_training': True,
     'train_batch_size': batch_size,
+    'best_model_dir': bert_model_path,
     'regression': True, # Enabling regression
 }
 
@@ -104,7 +106,7 @@ pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension
                                pooling_mode_cls_token=False,
                                pooling_mode_max_tokens=False)
 
-sbert_model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
+augsbert_model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 
 
 #####################################################
@@ -135,7 +137,7 @@ train_df = pd.DataFrame(train_data, columns=['text_a', 'text_b', 'labels'])
 eval_df = pd.DataFrame(dev_data, columns=['text_a', 'text_b', 'labels'])
 
 # Train the cross-encoder model
-bert_model.train_model(train_df, eval_df, bert_model_path, \
+bert_model.train_model(train_df=train_df, eval_df=eval_df, output_dir=bert_model_path, \
     pearson_corr=pearson_corr, spearman_corr=spearman_corr)
 
 ##########################################################################
@@ -144,14 +146,14 @@ bert_model.train_model(train_df, eval_df, bert_model_path, \
 #
 ##########################################################################
 
-logging.info("Step 2.1: Generate STSb silver dataset using top-k bm25 combinations")
-
-top_k = 3 # top k similar sentences to be retrieved for a sentence (larger the k, bigger the silver dataset)
+top_k = 1 # top k similar sentences to be retrieved for a sentence (larger the k, bigger the silver dataset)
 index_name = "stsb" # index-name should be in lowercase
+
+logging.info("Step 2.1: Generate STSb silver dataset using top-{} bm25 combinations".format(top_k))
 
 # unique sentences present in STSb corpus
 unique_sentences = set([data[0] for data in train_data] + [data[1] for data in train_data])
-sent2idx = {sentence: str(idx) for idx, sentence in enumerate(unique_sentences)}
+sent2idx = {sentence: idx for idx, sentence in enumerate(unique_sentences)}
 
 # Ignore 400 cause by IndexAlreadyExistsException when creating an index
 logging.info("Creating elastic-search index - {}".format(index_name))
@@ -175,11 +177,11 @@ for sent, idx in sent2idx.items():
     if ((idx < 10000 and idx % 1000 == 0) or (idx < 100000 and idx % 10000 == 0) or idx % 100000 == 0):
         logging.info("Completed retrieval of {} unique sentences".format(idx))
 
-    res = es.search(index = index_name, body={"query": {"match": {"sentence": sent} } }, size = top_k)
+    res = es.search(index = index_name, body={"query": {"match": {"sent": sent} } }, size = top_k)
     for hit in res['hits']['hits']:
-        if idx != hit["_id"] and (idx, hit["_id"]) not in set(duplicates):
+        if idx != int(hit["_id"]) and (idx, int(hit["_id"])) not in set(duplicates):
             silver_data.append([sent, hit['_source']["sent"]])
-            duplicates.append((idx, hit["_id"]))
+            duplicates.append((idx, int(hit["_id"])))
 
 
 logging.info("Step 2.2: Label STSb silver dataset with cross-encoder ({})".format(model_name))
@@ -203,9 +205,9 @@ logging.info("Read STSbenchmark gold and silver train dataset")
 gold_samples = list(InputExample(texts=[data[0], data[1]], label=data[2]) for data in train_data)
 silver_samples = list(InputExample(texts=[data[0], data[1]], label=score) for data, score in zip(silver_data, silver_scores))
 
-train_dataset = SentencesDataset(gold_samples + silver_samples, sbert_model)
-train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=train_batch_size)
-train_loss = losses.CosineSimilarityLoss(model=sbert_model)
+train_dataset = SentencesDataset(gold_samples + silver_samples, augsbert_model)
+train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size)
+train_loss = losses.CosineSimilarityLoss(model=augsbert_model)
 
 logging.info("Read STSbenchmark dev dataset")
 dev_samples = list(InputExample(texts=[data[0], data[1]], label=data[2]) for data in dev_data)
@@ -216,13 +218,12 @@ warmup_steps = math.ceil(len(train_dataset) * num_epochs / batch_size * 0.1) #10
 logging.info("Warmup-steps: {}".format(warmup_steps))
 
 # Train the bi-encoder model
-aug_sbert_model.fit(train_objectives=[(train_dataloader, train_loss)],
+augsbert_model.fit(train_objectives=[(train_dataloader, train_loss)],
           evaluator=evaluator,
           epochs=num_epochs,
           evaluation_steps=1000,
           warmup_steps=warmup_steps,
-          output_path=augsbert_model_path,
-          use_amp=True
+          output_path=augsbert_model_path
           )
 
 #################################################################################
@@ -232,7 +233,7 @@ aug_sbert_model.fit(train_objectives=[(train_dataloader, train_loss)],
 #################################################################################
 
 # load the stored augmented-sbert model
-model = SentenceTransformer(augsbert_model_path)
+augsbert_model = SentenceTransformer(augsbert_model_path)
 test_samples = list(InputExample(texts=[data[0], data[1]], label=data[2]) for data in test_data)
 test_evaluator = EmbeddingSimilarityEvaluator.from_input_examples(test_samples, name='sts-test')
-test_evaluator(model, output_path=augsbert_model_path)
+test_evaluator(augsbert_model, output_path=augsbert_model_path)
