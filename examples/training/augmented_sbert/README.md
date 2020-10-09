@@ -1,7 +1,7 @@
 # Augmented SBERT
 
 ## Motivation
-We recently obseve an increase of people using bi-encoders (SBERT) to train their own sentence embeddings, mostly with limited data and / or a domain shift (specialized data). However, bi-encoders (SBERT) require substantial training data and fine-tuning over the target task to achieve competitive performances. To solve this practical issue, we release an effective data-augmentation strategy known as <b>Augmented SBERT</b> where we utilize a high performing and slow cross-encoder (BERT) to label a larger set of input pairs to augment the training data for the bi-encoder (SBERT).
+We recently obseve an increase of people using bi-encoders aka sentence-bert (sentence-transformers) to train their own sentence embeddings, mostly with limited data and / or a domain shift (specialized data). However, bi-encoders require substantial training data and fine-tuning over the target task to achieve competitive performances. To solve this practical issue, we release an effective data-augmentation strategy known as <b>Augmented SBERT</b> where we utilize a high performing and slow cross-encoder (BERT) to label a larger set of input pairs to augment the training data for the bi-encoder (SBERT).
 
 For more details, refer to our publication - [Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks]() which is a joint effort by Nandan Thakur, Nils Reimers and Johannes Daxenberger of UKP Lab, TU Darmstadt.
 
@@ -42,11 +42,26 @@ We apply the Augmented SBERT (<b>Domain-Transfer</b>) strategy to solve the Issu
 <img src="https://raw.githubusercontent.com/Nthakur20/sentence-transformers/master/docs/img/augsbert-domain-transfer.png" width="500" height="300">
 
 
-## Sources for Training Data
-A great website for a vast number of parallel (translated) datasets is [OPUS](http://opus.nlpl.eu/). There, you find parallel datasets for more than 400 languages. 
+## Training
+ 
+The [examples/training/augmented_sbert](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training/augmented_sbert/) folder contains simple training examples for each scenario explained below:
 
-The [examples/training/multilingual](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training/multilingual/) folder contains some scripts that downloads parallel training data and brings it into the right format:
-- [get_parallel_data_opus.py](get_parallel_data_opus.py): This script downloads data from the [OPUS](http://opus.nlpl.eu/) website.
+- [train_sts_seed_optimization.py](train_sts_seed_optimization.py) 
+    - This script trains a bi-encoder (SBERT) model from scratch for STS benchmark dataset with seed-optimization. 
+    - Seed optimization technique is insiped from [(Dodge et al., 2020)](https://arxiv.org/abs/2002.06305). 
+    - For Seed opt., we train our bi-encoder for various seeds and evaluate using an early stopping algorithm. 
+    - Finally, measure dev performance across the seeds to get the highest performing seeds.
+
+- [train_sts_indomain_eda.py](train_sts_indomain_eda.py)
+    - This script trains a bi-encoder (SBERT) model from scratch for STS benchmark dataset using data augmentation strategies with [nlpaug](https://github.com/makcedward/nlpaug).
+    - we replace sentences with with synonyms with (word2vec, BERT, WordNet) and generate augmented sentences which form our silver dataset.
+    - we train our bi-encoder model with both original small training dataset and as well synonym based silver dataset. 
+
+- [train_sts_indomain_bm25.py](train_sts_indomain_bm25.py)
+    - This script trains a bi-encoder (SBERT) model from scratch for STS benchmark dataset using data augmentation strategies with [nlpaug](https://github.com/makcedward/nlpaug).
+    - we replace sentences with with synonyms with (word2vec, BERT, WordNet) and generate augmented sentences which form our silver dataset.
+    - we train our bi-encoder model with both original small training dataset and as well synonym based silver dataset. 
+
 - [get_parallel_data_tatoeba.py](get_parallel_data_tatoeba.py): This script downloads data from the [Tatoeba](https://tatoeba.org/) website, a website for language learners with example sentences for more than many languages.
 - [get_parallel_data_ted2020.py](get_parallel_data_ted2020.py): This script downloads data the [TED2020 corpus](https://github.com/UKPLab/sentence-transformers/blob/master/docs/datasets/TED2020.md), which contains transcripts and translations of more than 4,000 TED and TEDx talks in 100+ languages.
 
