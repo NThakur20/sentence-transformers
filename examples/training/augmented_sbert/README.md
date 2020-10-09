@@ -73,9 +73,9 @@ The [examples/training/augmented_sbert](https://github.com/UKPLab/sentence-trans
     - Train a bi-encoder (SBERT) model on both gold + silver STSb dataset. (Augmented SBERT (In-domain) Strategy).
 
 - [train_sts_qqp_crossdomain.py](train_sts_qqp_crossdomain.py)
-    - This script trains a bi-encoder (SBERT) model from scratch for STS benchmark dataset using data augmentation strategies with [nlpaug](https://github.com/makcedward/nlpaug).
-    - we replace sentences with with synonyms with (word2vec, BERT, WordNet) and generate augmented sentences which form our silver dataset.
-    - we train our bi-encoder model with both original small training dataset and as well synonym based silver dataset. 
+    - This script intially trains a cross-encoder (BERT) model from scratch for STS benchmark dataset.
+    - Label the Quora Questions Pair (QQP) training dataset (Assume no labels present) using the cross-encoder.
+    - Train a bi-encoder (SBERT) model on the QQP dataset. (Augmented SBERT (Domain-Transfer) Strategy).
 
 
 ## Performance
