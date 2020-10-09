@@ -31,11 +31,11 @@ We apply the Augmented SBERT (<b>In-domain</b>) strategy to solve the Issue, it 
 
 We apply the Augmented SBERT (<b>Domain-Transfer</b>) strategy to solve the Issue, it involves majorly three steps - 
 
- - ``Step 1:`` Train from scratch a cross-encoder (BERT) over a source dataset, for which we contain annotations.
+ - ``Step 1: Train from scratch a cross-encoder (BERT) over a source dataset, for which we contain annotations``
 
- - ``Step 2:`` Use this cross-encoder (BERT) to label your target dataset i.e. unlabled sentence pairs.
+ - ``Step 2: Use this cross-encoder (BERT) to label your target dataset i.e. unlabled sentence pairs``
 
- - ``Step 3:`` Finally train a bi-encoder (SBERT) on the labeled target dataset.
+ - ``Step 3: Finally, train a bi-encoder (SBERT) on the labeled target dataset``
 
 ### Visual Description of Augmented SBERT (Domain-Transfer)
 
