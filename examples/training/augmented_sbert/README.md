@@ -59,9 +59,11 @@ The [examples/training/augmented_sbert](https://github.com/UKPLab/sentence-trans
     - Train bi-encoder model on both original small training dataset and synonym based silver dataset. 
 
 - [train_sts_indomain_bm25.py](train_sts_indomain_bm25.py)
-    - This script trains a bi-encoder (SBERT) model from scratch for STS benchmark dataset using data augmentation strategies with [nlpaug](https://github.com/makcedward/nlpaug).
-    - we replace sentences with with synonyms with (word2vec, BERT, WordNet) and generate augmented sentences which form our silver dataset.
-    - we train our bi-encoder model with both original small training dataset and as well synonym based silver dataset. 
+    - This script trains a cross-encoder (BERT) model from scratch for small STS benchmark dataset.
+    - We recombine sentences from our small training dataset and form lots of sentence-pairs.
+    - Often utilizing all pairs isn't helpful, hence we limit the number with BM25 sampling with [ElasticSearch](https://www.elastic.co/).
+    - we retrieve top-k sentences given a sentence and label these pairs using the cross-encoder (BERT). These become the silver dataset.
+    - we finally train our bi-encoder model with both (gold + silver) dataset, this method is called as augmented sbert.
 
 - [train_sts_indomain_semantic.py](train_sts_indomain_semantic.py)
     - This script trains a bi-encoder (SBERT) model from scratch for STS benchmark dataset using data augmentation strategies with [nlpaug](https://github.com/makcedward/nlpaug).
