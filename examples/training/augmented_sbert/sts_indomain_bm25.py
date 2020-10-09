@@ -17,10 +17,12 @@ Three consecutives steps to be followed for AugSBERT data-augmentation strategy 
 For more details you can refer - cite paper
 
 Usage:
-python train_sts_allnli.py
+python sts_indomain_bm25.py
 
 OR
-python train_sts_allnli.py pretrained_transformer_model_name
+python sts_indomain_bm25.py pretrained_transformer_model_name top_k
+
+python sts_indomain_bm25.py bert-base-uncased 3
 """
 from torch.utils.data import DataLoader
 from simpletransformers.classification import ClassificationModel
@@ -36,6 +38,7 @@ import logging
 import scipy.spatial
 import csv
 import sys
+import tqdm
 import torch
 import math
 import gzip
@@ -61,6 +64,7 @@ es = Elasticsearch()
 
 #You can specify any huggingface/transformers pre-trained model here, for example, bert-base-uncased, roberta-base, xlm-roberta-base
 model_name = sys.argv[1] if len(sys.argv) > 1 else 'bert-base-uncased'
+top_k = int(sys.argv[2]) if len(sys.argv) > 2 else 3
 batch_size = 16
 num_epochs = 1
 max_seq_length = 128
@@ -146,7 +150,9 @@ bert_model.train_model(train_df=train_df, eval_df=eval_df, output_dir=bert_model
 #
 ##########################################################################
 
-top_k = 1 # top k similar sentences to be retrieved for a sentence (larger the k, bigger the silver dataset)
+#### Top k similar sentences to be retrieved ####
+#### Larger the k, bigger the silver dataset ####
+
 index_name = "stsb" # index-name should be in lowercase
 
 logging.info("Step 2.1: Generate STSb silver dataset using top-{} bm25 combinations".format(top_k))
@@ -171,18 +177,18 @@ logging.info("Indexing complete for {} unique sentences".format(len(unique_sente
 
 silver_data = [] 
 duplicates = [(sent2idx[data[0]], sent2idx[data[1]]) for data in train_data]
+progress = tqdm.tqdm(unit="docs", total=len(sent2idx))
 
 # retrieval of top-k sentences which forms the silver training data
 for sent, idx in sent2idx.items():
-    if ((idx < 10000 and idx % 1000 == 0) or (idx < 100000 and idx % 10000 == 0) or idx % 100000 == 0):
-        logging.info("Completed retrieval of {} unique sentences".format(idx))
-
     res = es.search(index = index_name, body={"query": {"match": {"sent": sent} } }, size = top_k)
+    progress.update(1)
     for hit in res['hits']['hits']:
         if idx != int(hit["_id"]) and (idx, int(hit["_id"])) not in set(duplicates):
             silver_data.append([sent, hit['_source']["sent"]])
             duplicates.append((idx, int(hit["_id"])))
 
+progress.reset()
 
 logging.info("Step 2.2: Label STSb silver dataset with cross-encoder ({})".format(model_name))
 bert_model = ClassificationModel(model_name.split("-")[0], bert_model_path, \
