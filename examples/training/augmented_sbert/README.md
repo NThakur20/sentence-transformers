@@ -59,18 +59,18 @@ The [examples/training/augmented_sbert](https://github.com/UKPLab/sentence-trans
     - Train bi-encoder model on both original small training dataset and synonym based silver dataset. 
 
 - [train_sts_indomain_bm25.py](train_sts_indomain_bm25.py)
-    - This script intially trains a cross-encoder (BERT) model from scratch for small STS benchmark dataset.
-    - We recombine sentences from our small training dataset and form lots of sentence-pairs.
-    - Utilizing all pairs isn't helpful, hence we limit the number with BM25 sampling with [ElasticSearch](https://www.elastic.co/).
-    - we retrieve top-k sentences given a sentence and label these pairs using the cross-encoder (silver dataset).
-    - we finally train a bi-encoder model on both gold + silver dataset. (Augmented SBERT (In-domain) Strategy).
+    - Script intially trains a cross-encoder (BERT) model from scratch for small STS benchmark dataset.
+    - Recombine sentences from our small training dataset and form lots of sentence-pairs.
+    - Limit number of combinations with BM25 sampling using [ElasticSearch](https://www.elastic.co/).
+    - Retrieve top-k sentences given a sentence and label these pairs using the cross-encoder (silver dataset).
+    - Train a bi-encoder (SBERT) model on both gold + silver STSb dataset. (Augmented SBERT (In-domain) Strategy).
 
 - [train_sts_indomain_semantic.py](train_sts_indomain_semantic.py)
     - This script intially trains a cross-encoder (BERT) model from scratch for small STS benchmark dataset.
     - We recombine sentences from our small training dataset and form lots of sentence-pairs.
-    - Utilizing all pairs isn't helpful, so we limit the number with Semantic sampling with a pretrained SBERT.
-    - we retrieve top-k sentences given a sentence and label these pairs using the cross-encoder (silver dataset).
-    - we finally train a bi-encoder model on both gold + silver dataset. (Augmented SBERT (In-domain) Strategy). 
+    - Limit number of combinations with Semantic Search sampling using pretrained SBERT model.
+    - Retrieve top-k sentences given a sentence and label these pairs using the cross-encoder (silver dataset).
+    - Train a bi-encoder (SBERT) model on both gold + silver STSb dataset. (Augmented SBERT (In-domain) Strategy).
 
 - [train_sts_qqp_crossdomain.py](train_sts_qqp_crossdomain.py)
     - This script trains a bi-encoder (SBERT) model from scratch for STS benchmark dataset using data augmentation strategies with [nlpaug](https://github.com/makcedward/nlpaug).
