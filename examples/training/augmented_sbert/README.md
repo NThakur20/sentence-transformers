@@ -1,7 +1,7 @@
 # Augmented SBERT
 
 ## Motivation
-Bi-encoders (SBERT) require substantial training data and fine-tuning over the target task to achieve competitive performance. Whereas, recently we obseve an increase of people using bi-encoders (SBERT) to train their own sentence embeddings, mostly with limited data and / or a domain shift (specialized data). To solve this practical issue, we release an effective data-augmentation strategy known as <b>Augmented SBERT</b> where we utilize a highly performing, slow cross-encoder (BERT) to label a larger set of input pairs to augment the training data for the bi-encoder (SBERT).
+We recently obseve an increase of people using bi-encoders (SBERT) to train their own sentence embeddings, mostly with limited data and / or a domain shift (specialized data). However, bi-encoders (SBERT) require substantial training data and fine-tuning over the target task to achieve competitive performances. To solve this practical issue, we release an effective data-augmentation strategy known as <b>Augmented SBERT</b> where we utilize a high performing and slow cross-encoder (BERT) to label a larger set of input pairs to augment the training data for the bi-encoder (SBERT).
 
 For more details, refer to our publication - [Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks]() which is a joint effort by Nandan Thakur, Nils Reimers and Johannes Daxenberger of UKP Lab, TU Darmstadt.
 
@@ -41,6 +41,14 @@ We apply the Augmented SBERT (<b>Domain-Transfer</b>) strategy to solve the Issu
 
 <img src="https://raw.githubusercontent.com/Nthakur20/sentence-transformers/master/docs/img/augsbert-domain-transfer.png" width="500" height="300">
 
+
+## Sources for Training Data
+A great website for a vast number of parallel (translated) datasets is [OPUS](http://opus.nlpl.eu/). There, you find parallel datasets for more than 400 languages. 
+
+The [examples/training/multilingual](https://github.com/UKPLab/sentence-transformers/blob/master/examples/training/multilingual/) folder contains some scripts that downloads parallel training data and brings it into the right format:
+- [get_parallel_data_opus.py](get_parallel_data_opus.py): This script downloads data from the [OPUS](http://opus.nlpl.eu/) website.
+- [get_parallel_data_tatoeba.py](get_parallel_data_tatoeba.py): This script downloads data from the [Tatoeba](https://tatoeba.org/) website, a website for language learners with example sentences for more than many languages.
+- [get_parallel_data_ted2020.py](get_parallel_data_ted2020.py): This script downloads data the [TED2020 corpus](https://github.com/UKPLab/sentence-transformers/blob/master/docs/datasets/TED2020.md), which contains transcripts and translations of more than 4,000 TED and TEDx talks in 100+ languages.
 
 
 ## Performance
