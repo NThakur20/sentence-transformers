@@ -53,17 +53,25 @@ The [examples/training/augmented_sbert](https://github.com/UKPLab/sentence-trans
     - Finally, measure dev performance across the seeds to get the highest performing seeds.
 
 - [train_sts_indomain_eda.py](train_sts_indomain_eda.py)
-    - This script trains a bi-encoder (SBERT) model from scratch for STS benchmark dataset using data augmentation strategies with [nlpaug](https://github.com/makcedward/nlpaug).
-    - we replace sentences with with synonyms with (word2vec, BERT, WordNet) and generate augmented sentences which form our silver dataset.
-    - we train our bi-encoder model with both original small training dataset and as well synonym based silver dataset. 
+    - This script trains a bi-encoder (SBERT) model from scratch for STS benchmark dataset using easy data augmentation. 
+    - Data augmentation strategies are used from popular [nlpaug](https://github.com/makcedward/nlpaug) package.
+    - Augment single sentences with synonyms using (word2vec, BERT or WordNet). Forms our silver dataset.
+    - Train bi-encoder model on both original small training dataset and synonym based silver dataset. 
 
 - [train_sts_indomain_bm25.py](train_sts_indomain_bm25.py)
     - This script trains a bi-encoder (SBERT) model from scratch for STS benchmark dataset using data augmentation strategies with [nlpaug](https://github.com/makcedward/nlpaug).
     - we replace sentences with with synonyms with (word2vec, BERT, WordNet) and generate augmented sentences which form our silver dataset.
     - we train our bi-encoder model with both original small training dataset and as well synonym based silver dataset. 
 
-- [get_parallel_data_tatoeba.py](get_parallel_data_tatoeba.py): This script downloads data from the [Tatoeba](https://tatoeba.org/) website, a website for language learners with example sentences for more than many languages.
-- [get_parallel_data_ted2020.py](get_parallel_data_ted2020.py): This script downloads data the [TED2020 corpus](https://github.com/UKPLab/sentence-transformers/blob/master/docs/datasets/TED2020.md), which contains transcripts and translations of more than 4,000 TED and TEDx talks in 100+ languages.
+- [train_sts_indomain_semantic.py](train_sts_indomain_semantic.py)
+    - This script trains a bi-encoder (SBERT) model from scratch for STS benchmark dataset using data augmentation strategies with [nlpaug](https://github.com/makcedward/nlpaug).
+    - we replace sentences with with synonyms with (word2vec, BERT, WordNet) and generate augmented sentences which form our silver dataset.
+    - we train our bi-encoder model with both original small training dataset and as well synonym based silver dataset. 
+
+- [train_sts_qqp_crossdomain.py](train_sts_qqp_crossdomain.py)
+    - This script trains a bi-encoder (SBERT) model from scratch for STS benchmark dataset using data augmentation strategies with [nlpaug](https://github.com/makcedward/nlpaug).
+    - we replace sentences with with synonyms with (word2vec, BERT, WordNet) and generate augmented sentences which form our silver dataset.
+    - we train our bi-encoder model with both original small training dataset and as well synonym based silver dataset. 
 
 
 ## Performance
