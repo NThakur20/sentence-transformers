@@ -7,6 +7,7 @@ For the beginning, I can recommend to have a look at the Semantic Textual Simila
 For the documentation how to train your own models, see [Training Overview](http://www.sbert.net/docs/training/overview.html).
 
 ## Training Examples
+- [augmented_sbert](augmented_sbert/) - Existent models don't perform well with less or training data. We introduce a data augmentation approach known as Augmented SBERT ([paper]()) to solve this problem. This folder contains a step-by-step guide to train existing models with augmented-sbert approach.
 - [avg_word_embeddings](avg_word_embeddings/) - This folder contains examples to train models based on classical word embeddings like GloVe. These models are extremely fast, but are a more inaccuracte than transformers based models.
 - [distillation](distillation/) - Examples to make models smaller, faster and lighter.
 - [multilingual](multilingual/) - Existent monolingual models can be extend to various languages ([paper](https://arxiv.org/abs/2004.09813)). This folder contains a step-by-step guide to extend existent models to new languages. 
