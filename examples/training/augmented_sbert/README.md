@@ -9,17 +9,17 @@ For more details, refer to our publication - [Augmented SBERT: Data Augmentation
 ## Usage
 There are two major use-cases for the Augmented SBERT approach for pairwise-sentence regression or classification tasks - 
 
-## Scenario 1: Limited or small annonated datasets (few labeled sentence-pairs)
+## Scenario 1: Limited or small annotated datasets (few labeled sentence-pairs)
 
 We apply the Augmented SBERT (<b>In-domain</b>) strategy to solve the Issue, it involves majorly three steps - 
 
- - ``Step 1:`` Fine-tune a Cross Encoder (BERT) over the gold dataset aka. annotated dataset.
+ - ``Step 1:  Train a cross-encoder (BERT) over the small gold or annotated dataset``
 
- - ``Step 2.1:`` We sample unlabeled sentence pairs acc. to a certain sampling strategy (BM25 or Semantic Search).
+ - ``Step 2.1: Create sentence-pairs by recombination and reduce the pairs via BM25 or Semantic Search sampling strategies``
 
- - ``Step 2.2:`` We weakly label these sentence-pairs with the fine-tuned cross-encoder (BERT). We call these pairs as the silver dataset.
+ - ``Step 2.2: Weakly label new sentence-pairs with cross-encoder (BERT). Call them as silver pairs or silver dataset``
 
- - ``Step 3:`` We finally fine-tune a Bi Encoder (SBERT) on this extended training dataset including both gold and silver datasets.
+ - ``Step 3:  Finally, train a bi-encoder (SBERT) on the extended training dataset including both gold and silver datasets``
 
 ### Visual Description of Augmented SBERT (In-Domain)
 
@@ -27,7 +27,7 @@ We apply the Augmented SBERT (<b>In-domain</b>) strategy to solve the Issue, it 
 
 
 
-## Scenario 2: No annonated datasets (Only unlabeled sentence-pairs)
+## Scenario 2: No annotated datasets (Only unlabeled sentence-pairs)
 
 We apply the Augmented SBERT (<b>Domain-Transfer</b>) strategy to solve the Issue, it involves majorly three steps - 
 
