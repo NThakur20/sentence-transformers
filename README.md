@@ -11,7 +11,7 @@ Further, this framework allows an easy  **[fine-tuning of custom embeddings mode
 For the **full documentation**, see [www.SBERT.net](https://www.sbert.net), as well as our publications:
 - [Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks](https://arxiv.org/abs/1908.10084) (EMNLP 2019)
 - [Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation](https://arxiv.org/abs/2004.09813) (ArXiv 2020).
-- [Augmented SBERT: Data Augmentation Method for ImprovingBi-Encoders for Pairwise Sentence Scoring Tasks]() (ArXiv 2020).
+- [Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks]() (ArXiv 2020).
 
 
 
@@ -282,7 +282,7 @@ If you use the code for multilingual models, feel free to cite our publication [
     url = "http://arxiv.org/abs/2004.09813",
 }
 ```
-If you use the code for augmented sbert, feel free to cite our publication [Augmented SBERT: Data Augmentation Method for ImprovingBi-Encoders for Pairwise Sentence Scoring Tasks]():
+If you use the code for augmented sbert technique, feel free to cite our publication [Augmented SBERT: Data Augmentation Method for Improving Bi-Encoders for Pairwise Sentence Scoring Tasks]():
 ```
 ```
 
