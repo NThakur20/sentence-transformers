@@ -39,8 +39,13 @@ class SentenceTransformer(nn.Sequential):
             model_path = model_name_or_path
 
             if not os.path.isdir(model_path) and not model_path.startswith('http://') and not model_path.startswith('https://'):
-                logging.info("Did not find folder {}. Assume to download model from server.".format(model_path))
+                logging.info("Did not find folder {}".format(model_path))
+
+                if '\\' in model_path or model_path.count('/') > 1:
+                    raise AttributeError("Path {} not found".format(model_path))
+
                 model_path = __DOWNLOAD_SERVER__ + model_path + '.zip'
+                logging.info("Try to download model from server: {}".format(model_path))
 
             if model_path.startswith('http://') or model_path.startswith('https://'):
                 model_url = model_path
@@ -493,10 +498,8 @@ class SentenceTransformer(nn.Sequential):
             dataloader.collate_fn = self.smart_batching_collate
 
         loss_models = [loss for _, loss in train_objectives]
-        device = self._target_device
-
         for loss_model in loss_models:
-            loss_model.to(device)
+            loss_model.to(self._target_device)
 
         self.best_score = -9999999
 
@@ -587,8 +590,7 @@ class SentenceTransformer(nn.Sequential):
                         loss_model.zero_grad()
                         loss_model.train()
 
-            self._eval_during_training(evaluator, output_path, save_best_model, epoch,
-                                       -1, callback)
+            self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
 
     def evaluate(self, evaluator: SentenceEvaluator, output_path: str = None):
         """
@@ -615,7 +617,8 @@ class SentenceTransformer(nn.Sequential):
                     self.save(output_path)
 
 
-    def _get_scheduler(self, optimizer, scheduler: str, warmup_steps: int, t_total: int):
+    @staticmethod
+    def _get_scheduler(optimizer, scheduler: str, warmup_steps: int, t_total: int):
         """
         Returns the correct learning rate scheduler. Available scheduler: constantlr, warmupconstant, warmuplinear, warmupcosine, warmupcosinewithhardrestarts
         """

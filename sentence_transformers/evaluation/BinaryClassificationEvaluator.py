@@ -7,10 +7,10 @@ from sentence_transformers.util import batch_to_device
 import os
 import csv
 from sklearn.metrics.pairwise import paired_cosine_distances, paired_euclidean_distances, paired_manhattan_distances
+from sklearn.metrics import average_precision_score
 import numpy as np
 from typing import List
 from ..readers import InputExample
-from sklearn.metrics import average_precision_score
 
 class BinaryClassificationEvaluator(SentenceEvaluator):
     """
@@ -48,7 +48,7 @@ class BinaryClassificationEvaluator(SentenceEvaluator):
             show_progress_bar = (logging.getLogger().getEffectiveLevel() == logging.INFO or logging.getLogger().getEffectiveLevel() == logging.DEBUG)
         self.show_progress_bar = show_progress_bar
 
-        self.csv_file: str = "binary_classification_evaluation" + ("_"+name if name else '') + "_results.csv"
+        self.csv_file = "binary_classification_evaluation" + ("_"+name if name else '') + "_results.csv"
         self.csv_headers = ["epoch", "steps",
                             "cosine_acc", "cosine_acc_threshold", "cosine_f1", "cosine_precision", "cosine_recall", "cosine_f1_threshold", "cosine_average_precision",
                             "manhatten_acc", "manhatten_acc_threshold", "manhatten_f1", "manhatten_precision", "manhatten_recall", "manhatten_f1_threshold", "manhatten_average_precision",
