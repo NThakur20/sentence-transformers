@@ -29,8 +29,6 @@ We apply the Augmented SBERT (<b>In-domain</b>) strategy, it involves three step
 
  - Step 3:  Finally, train a bi-encoder (SBERT) on the extended (gold + silver) training dataset
 
-### Visual Description of Augmented SBERT (In-Domain)
-
 <img src="https://raw.githubusercontent.com/Nthakur20/sentence-transformers/master/docs/img/augsbert-indomain.png" width="400" height="500">
 
 ## Scenario 2: No annotated datasets (Only unlabeled sentence-pairs)
@@ -42,8 +40,6 @@ We apply the Augmented SBERT (<b>Domain-Transfer</b>) strategy, it involves thre
  - Step 2: Use this cross-encoder (BERT) to label your target dataset i.e. unlabled sentence pairs
 
  - Step 3: Finally, train a bi-encoder (SBERT) on the labeled target dataset
-
-### Visual Description of Augmented SBERT (Domain-Transfer)
 
 <img src="https://raw.githubusercontent.com/Nthakur20/sentence-transformers/master/docs/img/augsbert-domain-transfer.png" width="500" height="300">
 
