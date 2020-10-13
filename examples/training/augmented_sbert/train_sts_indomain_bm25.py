@@ -75,7 +75,8 @@ bi_encoder_path = 'output/bi-encoder/stsb_augsbert_BM25_'+model_name.replace("/"
 ###### Cross-encoder (simpletransformers) ######
 logging.info("Loading sentence-transformers model: {}".format(model_name))
 # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for cross-encoder model
-cross_encoder = CrossEncoder(model_name, num_labels=1, max_seq_length=max_seq_length)
+# TODO: add max seq length to cross-encoder example
+cross_encoder = CrossEncoder(model_name, num_labels=1)
 
 
 ###### Bi-encoder (sentence-transformers) ######
@@ -120,7 +121,7 @@ with gzip.open(sts_dataset_path, 'rt', encoding='utf8') as fIn:
 
 
 # We wrap gold_samples (which is a List[InputExample]) into a pytorch DataLoader
-train_dataloader = DataLoader(gold_samples, shuffle=True, batch_size=train_batch_size)
+train_dataloader = DataLoader(gold_samples, shuffle=True, batch_size=batch_size)
 
 
 # We add an evaluator, which evaluates the performance during training
@@ -173,7 +174,6 @@ for sent in unique_sentences:
 logging.info("Indexing complete for {} unique sentences".format(len(unique_sentences)))
 
 silver_data = [] 
-duplicates = [(sent2idx[data[0]], sent2idx[data[1]]) for data in train_data]
 progress = tqdm.tqdm(unit="docs", total=len(sent2idx))
 
 # retrieval of top-k sentences which forms the silver training data
@@ -183,7 +183,7 @@ for sent, idx in sent2idx.items():
     for hit in res['hits']['hits']:
         if idx != int(hit["_id"]) and (idx, int(hit["_id"])) not in set(duplicates):
             silver_data.append((sent, hit['_source']["sent"]))
-            duplicates.append((idx, int(hit["_id"])))
+            duplicates.add((idx, int(hit["_id"])))
 
 progress.reset()
 progress.close()
