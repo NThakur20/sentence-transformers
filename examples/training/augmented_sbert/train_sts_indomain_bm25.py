@@ -92,11 +92,11 @@ pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension
 bi_encoder = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 
 
-#####################################################
+#####################################################################
 #
-# Step 1: Train cross-encoder model with STSbenchmark
+# Step 1: Train cross-encoder model with (gold) STS benchmark dataset
 #
-#####################################################
+#####################################################################
 
 logging.info("Step 1: Train cross-encoder: ({}) with STSbenchmark".format(model_name))
 
@@ -137,11 +137,11 @@ cross_encoder.fit(train_dataloader=train_dataloader,
           warmup_steps=warmup_steps,
           output_path=cross_encoder_path)
 
-##########################################################################
+############################################################################
 #
-# Step 2: Label BM25 sampled STSb silver dataset using cross-encoder model
+# Step 2: Label BM25 sampled STSb (silver dataset) using cross-encoder model
 #
-##########################################################################
+############################################################################
 
 #### Top k similar sentences to be retrieved ####
 #### Larger the k, bigger the silver dataset ####
@@ -197,11 +197,11 @@ silver_scores = cross_encoder.predict(silver_data)
 # All model predictions should be between [0,1]
 assert all(0.0 <= score <= 1.0 for score in silver_scores)
 
-############################################################################################
+#################################################################################################
 #
-# Step 3: Train bi-encoder model with both STSbenchmark and labeled AllNlI - Augmented SBERT
+# Step 3: Train bi-encoder model with both (gold + silver) STSbenchmark dataset - Augmented SBERT
 #
-############################################################################################
+#################################################################################################
 
 logging.info("Step 3: Train bi-encoder: {} with STSbenchmark (gold + silver dataset)".format(model_name))
 

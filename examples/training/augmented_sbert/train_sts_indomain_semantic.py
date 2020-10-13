@@ -131,11 +131,11 @@ cross_encoder.fit(train_dataloader=train_dataloader,
           warmup_steps=warmup_steps,
           output_path=cross_encoder_path)
 
-##########################################################################
+############################################################################
 #
-# Step 2: Label BM25 sampled STSb silver dataset using cross-encoder model
+# Step 2: Label BM25 sampled STSb (silver dataset) using cross-encoder model
 #
-##########################################################################
+############################################################################
 
 #### Top k similar sentences to be retrieved ####
 #### Larger the k, bigger the silver dataset ####

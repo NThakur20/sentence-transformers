@@ -98,11 +98,11 @@ with gzip.open(sts_dataset_path, 'rt', encoding='utf8') as fIn:
         else:
             gold_samples.append(inp_example)
 
-#############################################################################
+##################################################################################
 #
-# Textual Data Augmentation: Synonym Replacement with word2vec, BERT, WordNet
+# Data Augmentation: Synonym Replacement with word2vec, BERT, WordNet using nlpaug
 #
-#############################################################################
+##################################################################################
 
 logging.info("Starting with synonym replacement...")
 
@@ -137,7 +137,7 @@ logging.info("Number of silver pairs generated: {}".format(len(silver_samples)))
 
 ###################################################################
 #
-# Train SBERT model with both Gold + Silver STSbenchmark data 
+# Train SBERT model with both (gold + silver) STS benchmark dataset
 #
 ###################################################################
 
@@ -165,11 +165,11 @@ model.fit(train_objectives=[(train_dataloader, train_loss)],
           output_path=model_save_path
           )
 
-##################################################
+##########################################################
 #
-# Evaluate SBERT performance STS benchmark dataset
+# Evaluate SBERT performance on STS benchmark test dataset
 #
-##################################################
+##########################################################
 
 model = SentenceTransformer(model_save_path)
 test_evaluator = EmbeddingSimilarityEvaluator.from_input_examples(test_samples, name='sts-test')
