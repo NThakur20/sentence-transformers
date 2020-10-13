@@ -8,13 +8,14 @@ For more details, refer to our publication - [Augmented SBERT: Data Augmentation
 ## Extend to your own datasets
 
 ### Scenario 1: Limited or small annotated datasets (few labeled sentence-pairs (1k-3k))
-You can extend the idea utilised in **Augmented SBERT** to your own datasets, if you have specialized datsets in your company or reseach which are small or contain labeled few pairs. Train a cross-encoder over the small golden dataset and utilize BM25 sampling and generate combinations not seen earlier. Use the cross-encoder to label these unlabeled pairs i.e. silver dataset. Finally train a bi-encoder i.e. SBERT over your extended dataset (gold+silver) dataset as shown in [train_sts_indomain_bm25.py](train_sts_indomain_bm25.py).
+If you have specialized datsets in your company or reseach which are small-sized or contain labeled few sentence-pairs. You can extend the idea of Augmented SBERT (in-domain) strategy by training a cross-encoder over your small gold or annotated dataset and use BM25 sampling and generate combinations not seen earlier. Use the cross-encoder to label these unlabeled pairs i.e. silver dataset. Finally train a bi-encoder i.e. SBERT over your extended dataset (gold+silver) dataset as shown in [train_sts_indomain_bm25.py](train_sts_indomain_bm25.py).
 
 ### Scenario 2: No annotated datasets (Only unlabeled sentence-pairs)
-You can extend the idea utilised in **Augmented SBERT** to your own datasets, if you have specialized datsets in your company or reseach which only contain unlabeled sentence-pairs. Train a cross-encoder over a source dataset which is open-sourced and generic source dataset (for eg. QQP). Use the cross-encoder to label your specialised unlabeled dataset i.e. target dataset. Finally train a bi-encoder i.e. SBERT over your labeled target dataset as shown in [train_sts_qqp_crossdomain.py](train_sts_qqp_crossdomain.py).
+If you have specialized datsets in your company or reseach which only contain unlabeled sentence-pairs. You can extend the idea of Augmented SBERT (domain-transfer) strategy by training a cross-encoder over a source dataset which is annotated (for eg. QQP). Use this cross-encoder to label your specialised unlabeled dataset i.e. target dataset. Finally train a bi-encoder i.e. SBERT over your labeled target dataset as shown in [train_sts_qqp_crossdomain.py](train_sts_qqp_crossdomain.py).
+
 
 ## Methodology 
-There are two major use-cases for the Augmented SBERT approach for pairwise-sentence regression or classification tasks - 
+There are two major scenarios for the Augmented SBERT approach for pairwise-sentence regression or classification tasks. 
 
 ## Scenario 1: Limited or small annotated datasets (few labeled sentence-pairs)
 
