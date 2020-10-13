@@ -1,12 +1,14 @@
 """
-The script shows how to train Augmented SBERT (Cross-Domain) strategy for STSb-QQP dataset.
- 
-1. Cross-Encoder aka BERT is trained over STSb dataset.
-2. Cross-Encoder is used to label QQP training dataset (Assume no labels/no annotations are provided).
-3. Bi-encoder aka SBERT is trained over the labeled QQP dataset.
+The script shows how to train Augmented SBERT (Domain-Transfer/Cross-Domain) strategy for STSb-QQP dataset.
+For our example below we consider STSb (source) and QQP (target) datasets respectively.
 
+Methodology:
+Three steps are followed for AugSBERT data-augmentation strategy with Domain Trasfer / Cross-Domain - 
+1. Cross-Encoder aka BERT is trained over STSb (source) dataset.
+2. Cross-Encoder is used to label QQP training (target) dataset (Assume no labels/no annotations are provided).
+3. Bi-encoder aka SBERT is trained over the labeled QQP (target) dataset.
 
-For more details you can refer - cite paper
+Citations:
 
 Usage:
 python sts_qqp_crossdomain.py
@@ -17,14 +19,14 @@ python sts_qqp_crossdomain.py pretrained_transformer_model_name
 from torch.utils.data import DataLoader
 from simpletransformers.classification import ClassificationModel
 from sentence_transformers import models, losses, util
+from sentence_transformers.cross_encoder import CrossEncoder
+from sentence_transformers.cross_encoder.evaluation import CECorrelationEvaluator
 from sentence_transformers import SentencesDataset, LoggingHandler, SentenceTransformer
-from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
+from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator, BinaryClassificationEvaluator
 from sentence_transformers.readers import InputExample
 from datetime import datetime
-from scipy.stats import pearsonr, spearmanr
-import pandas as pd
+from zipfile import ZipFile
 import logging
-import scipy.spatial
 import csv
 import sys
 import torch
@@ -32,11 +34,6 @@ import math
 import gzip
 import os
 
-def pearson_corr(preds, labels):
-    return pearsonr(preds, labels)[0]
-
-def spearman_corr(preds, labels):
-    return spearmanr(preds, labels)[0]
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(format='%(asctime)s - %(message)s',
@@ -71,27 +68,15 @@ if not os.path.exists(qqp_dataset_path):
         zip.extractall(qqp_dataset_path)
 
 
-bert_model_path = 'output/bert/stsb_indomain_'+model_name.replace("/", "-")+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-augsbert_model_path = 'output/augsbert/qqp_cross_domain_'+model_name.replace("/", "-")+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+cross_encoder_path = 'output/cross-encoder/stsb_indomain_'+model_name.replace("/", "-")+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+bi_encoder_path = 'output/bi-encoder/qqp_cross_domain_'+model_name.replace("/", "-")+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 ###### Cross-encoder (simpletransformers) ######
 
 logging.info("Loading cross-encoder model: {}".format(model_name))
-
-# Setting optional model configuration
-train_args={
-    'reprocess_input_data': True,
-    'overwrite_output_dir': True,
-    'num_train_epochs': num_epochs,
-    'max_seq_length': max_seq_length,
-    'evaluate_during_training': True,
-    'train_batch_size': batch_size,
-    'best_model_dir': bert_model_path,
-    'regression': True, # Enabling regression
-}
-
-bert_model = ClassificationModel(model_name.split("-")[0], model_name, \
-    num_labels=1, use_cuda=use_cuda, cuda_device=0, args=train_args)
+# Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for cross-encoder model
+# TODO: add max seq length to cross-encoder example
+cross_encoder = CrossEncoder(model_name, num_labels=1)
 
 ###### Bi-encoder (sentence-transformers) ######
 
@@ -106,20 +91,20 @@ pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension
                                pooling_mode_cls_token=False,
                                pooling_mode_max_tokens=False)
 
-augsbert_model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
+bi_encoder = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 
 
-############################################################
+#####################################################
 #
-# Step 1: Train cross-encoder (BERT) model with STSbenchmark
+# Step 1: Train cross-encoder model with STSbenchmark
 #
-############################################################
+#####################################################
 
-logging.info("Step 1: Train cross-encoder: ({}) with STSbenchmark".format(model_name))
+logging.info("Step 1: Train cross-encoder: {} with STSbenchmark (source dataset)".format(model_name))
 
-train_data = []
-dev_data = []
-test_data = []
+gold_samples = []
+dev_samples = []
+test_samples = []
 
 with gzip.open(sts_dataset_path, 'rt', encoding='utf8') as fIn:
     reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
@@ -127,18 +112,33 @@ with gzip.open(sts_dataset_path, 'rt', encoding='utf8') as fIn:
         score = float(row['score']) / 5.0  # Normalize score to range 0 ... 1
 
         if row['split'] == 'dev':
-            dev_data.append([row['sentence1'], row['sentence2'], score])
+            dev_samples.append(InputExample(texts=[row['sentence1'], row['sentence2']], label=score))
         elif row['split'] == 'test':
-            test_data.append([row['sentence1'], row['sentence2'], score])
+            test_samples.append(InputExample(texts=[row['sentence1'], row['sentence2']], label=score))
         else:
-            train_data.append([row['sentence1'], row['sentence2'], score])
+            #As we want to get symmetric scores, i.e. CrossEncoder(A,B) = CrossEncoder(B,A), we pass both combinations to the train set
+            gold_samples.append(InputExample(texts=[row['sentence1'], row['sentence2']], label=score))
+            gold_samples.append(InputExample(texts=[row['sentence2'], row['sentence1']], label=score))
 
-train_df = pd.DataFrame(train_data, columns=['text_a', 'text_b', 'labels'])
-eval_df = pd.DataFrame(dev_data, columns=['text_a', 'text_b', 'labels'])
 
-# Train the cross-encoder (BERT) model
-bert_model.train_model(train_df=train_df, eval_df=eval_df, output_dir=bert_model_path, \
-    pearson_corr=pearson_corr, spearman_corr=spearman_corr)
+# We wrap gold_samples (which is a List[InputExample]) into a pytorch DataLoader
+train_dataloader = DataLoader(gold_samples, shuffle=True, batch_size=batch_size)
+
+
+# We add an evaluator, which evaluates the performance during training
+evaluator = CECorrelationEvaluator.from_input_examples(dev_samples, name='sts-dev')
+
+# Configure the training
+warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1) #10% of train data for warm-up
+logging.info("Warmup-steps: {}".format(warmup_steps))
+
+# Train the cross-encoder model
+cross_encoder.fit(train_dataloader=train_dataloader,
+          evaluator=evaluator,
+          epochs=num_epochs,
+          evaluation_steps=1000,
+          warmup_steps=warmup_steps,
+          output_path=cross_encoder_path)
 
 ##################################################################
 #
@@ -146,10 +146,9 @@ bert_model.train_model(train_df=train_df, eval_df=eval_df, output_dir=bert_model
 #
 ##################################################################
 
-logging.info("Step 2: Label QQP dataset with cross-encoder ({})".format(model_name))
+logging.info("Step 2: Label QQP (target dataset) with cross-encoder: {}".format(model_name))
 
-bert_model = ClassificationModel(model_name.split("-")[0], bert_model_path, \
-    num_labels=1, use_cuda=use_cuda, cuda_device=0, args=train_args)
+cross_encoder = CrossEncoder(cross_encoder_path)
 
 silver_data = []
 
@@ -159,7 +158,7 @@ with open(os.path.join(qqp_dataset_path, "classification/train_pairs.tsv"), enco
         if row['is_duplicate'] == '1':
             silver_data.append([row['question1'], row['question2']])
 
-silver_scores, _ = bert_model.predict(silver_data)
+silver_scores = cross_encoder.predict(silver_data)
 
 # All model predictions should be between [0,1]
 assert all(0.0 <= score <= 1.0 for score in silver_scores)
@@ -172,16 +171,15 @@ binary_silver_scores = [1 if score >= 0.5 else 0 for score in silver_scores]
 #
 ###########################################################################
 
-logging.info("Step 3: Train bi-encoder ({}) with QQP labeled dataset".format(model_name))
+logging.info("Step 3: Train bi-encoder: {} over labeled QQP (target dataset)".format(model_name))
 
 # Convert the dataset to a DataLoader ready for training
 logging.info("Loading BERT labeled QQP dataset")
-qqp_train_data = list(InputExample(texts=[data[0], data[1]], label=score) \
-        for data, score in zip(silver_data, binary_silver_scores))
+qqp_train_data = list(InputExample(texts=[data[0], data[1]], label=score) for (data, score) in zip(silver_data, binary_silver_scores))
 
-train_dataset = SentencesDataset(qqp_train_data, augsbert_model)
+train_dataset = SentencesDataset(qqp_train_data, bi_encoder)
 train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size)
-train_loss = losses.MultipleNegativesRankingLoss(model)
+train_loss = losses.MultipleNegativesRankingLoss(bi_encoder)
 
 ###### Classification ######
 # Given (quesiton1, question2), is this a duplicate or not?
@@ -193,26 +191,26 @@ dev_sentences1 = []
 dev_sentences2 = []
 dev_labels = []
 
-with open(os.path.join(dataset_path, "classification/dev_pairs.tsv"), encoding='utf8') as fIn:
+with open(os.path.join(qqp_dataset_path, "classification/dev_pairs.tsv"), encoding='utf8') as fIn:
     reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
     for row in reader:
         dev_sentences1.append(row['question1'])
         dev_sentences2.append(row['question2'])
         dev_labels.append(int(row['is_duplicate']))
 
-evaluator = evaluation.BinaryClassificationEvaluator(dev_sentences1, dev_sentences2, dev_labels)
+evaluator = BinaryClassificationEvaluator(dev_sentences1, dev_sentences2, dev_labels)
 
 # Configure the training.
 warmup_steps = math.ceil(len(train_dataset) * num_epochs / batch_size * 0.1) #10% of train data for warm-up
 logging.info("Warmup-steps: {}".format(warmup_steps))
 
 # Train the bi-encoder model
-augsbert_model.fit(train_objectives=[(train_dataloader, train_loss)],
+bi_encoder.fit(train_objectives=[(train_dataloader, train_loss)],
           evaluator=evaluator,
           epochs=num_epochs,
           evaluation_steps=1000,
           warmup_steps=warmup_steps,
-          output_path=augsbert_model_path,
+          output_path=bi_encoder_path,
           output_path_ignore_not_empty=True
           )
 
@@ -223,19 +221,19 @@ augsbert_model.fit(train_objectives=[(train_dataloader, train_loss)],
 ###############################################################
 
 # Loading the augmented sbert model 
-augsbert_model = SentenceTransformer(augsbert_model_path)
+bi_encoder = SentenceTransformer(bi_encoder_path)
 
 logging.info("Read QQP test dataset")
 test_sentences1 = []
 test_sentences2 = []
 test_labels = []
 
-with open(os.path.join(dataset_path, "classification/test_pairs.tsv"), encoding='utf8') as fIn:
+with open(os.path.join(qqp_dataset_path, "classification/test_pairs.tsv"), encoding='utf8') as fIn:
     reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_NONE)
     for row in reader:
         test_sentences1.append(row['question1'])
         test_sentences2.append(row['question2'])
         test_labels.append(int(row['is_duplicate']))
 
-evaluator = evaluation.BinaryClassificationEvaluator(test_sentences1, test_sentences2, test_labels)
-augsbert_model.evaluate(evaluator)
+evaluator = BinaryClassificationEvaluator(test_sentences1, test_sentences2, test_labels)
+bi_encoder.evaluate(evaluator)

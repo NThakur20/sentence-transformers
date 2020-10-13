@@ -1,23 +1,29 @@
 """
-The script shows how to train Augmented SBERT (In-Domain) strategy for STSb dataset with textual augmentation.
-
+The script shows how to train Augmented SBERT (In-Domain) strategy for STSb dataset with nlp textual augmentation.
 We utilise nlpaug (https://github.com/makcedward/nlpaug) for data augmentation strategies over a single sentence.
 
-Textual Augmentation for our example requires nlpaug to be intstalled (pip install nlpaug)
-
-We went over the nlpaug package and found from our experience, the  most commonly used and effective technique
-is synonym replacement with words. However in theory you can use any textual data augmentation mentioned
-in detail here - (https://github.com/makcedward/nlpaug/blob/master/example/textual_augmenter.ipynb)
-
-We plan to demostrate Synonym replacement using -
-1. Word-embeddings (word2vec) 
-2. Contextual word-embeddings (BERT)
-3. WordNet
-
+We chose synonym replacement for our example with (can be extended to other techniques) -
+    1. Word-embeddings (word2vec) 
+    2. WordNet
+    3. Contextual word-embeddings (BERT)
 
 Methodology:
-Take a gold pair, like (A, B, 0.6) Then replace synonyms in A and B, which gives you (A', B', 0.6) 
-These are the silver data and SBERT is trained on gold + silver data
+Take a gold STSb pair, like (A, B, 0.6) Then replace synonyms in A and B, which gives you (A', B', 0.6) 
+These are the silver data and SBERT is finally trained on (gold + silver) STSb data.
+
+Installations:
+For this example, nlpaug to be intstalled (pip install nlpaug)
+
+Information:
+We went over the nlpaug package and found from our experience, the commonly used and effective technique
+is synonym replacement with words. However feel free to use any textual data augmentation mentioned
+in the example - (https://github.com/makcedward/nlpaug/blob/master/example/textual_augmenter.ipynb)
+
+You could also extend the easy data augmentation methods for other languages too, a good example can be
+found here - (https://github.com/makcedward/nlpaug/blob/master/example/textual_language_augmenter.ipynb)
+
+
+Citations:
 
 Usage:
 python sts_indomain_eda.py 
@@ -59,7 +65,7 @@ if not os.path.exists(sts_dataset_path):
     util.http_get('https://sbert.net/datasets/stsbenchmark.tsv.gz', sts_dataset_path)
 
 
-model_save_path = 'output/sbert-eda/stsb_indomain_'+model_name.replace("/", "-")+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+model_save_path = 'output/bi-encoder/stsb_indomain_eda_'+model_name.replace("/", "-")+'-'+datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 ###### Bi-encoder (sentence-transformers) ######
 logging.info("Loading SBERT model: {}".format(model_name))
@@ -98,10 +104,9 @@ with gzip.open(sts_dataset_path, 'rt', encoding='utf8') as fIn:
 #
 #############################################################################
 
-logging.info("Starting with textual augmentation...")
+logging.info("Starting with synonym replacement...")
 
 #### Synonym replacement using Word2Vec ####
-
 # Download the word2vec pre-trained Google News corpus (GoogleNews-vectors-negative300.bin)
 # link: https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit?usp=sharing
 
@@ -110,26 +115,25 @@ logging.info("Starting with textual augmentation...")
 #     action="substitute")
 
 #### Synonym replacement using WordNet ####
-
 # aug = naw.SynonymAug(aug_src='wordnet')
 
 #### Synonym replacement using BERT ####
-
 aug = naw.ContextualWordEmbsAug(
-    model_path='bert-base-uncased', action="insert", device=device)
+    model_path=model_name, action="insert", device=device)
 
 silver_samples = []
 progress = tqdm.tqdm(unit="docs", total=len(gold_samples))
 
 for sample in gold_samples:
-    augmented_texts = aug.augment(sample.texts) 
+    augmented_texts = aug.augment(sample.texts)
     inp_example = InputExample(texts=augmented_texts, label=sample.label)
     silver_samples.append(inp_example)
     progress.update(1)
 
 progress.reset()
+progress.close()
 logging.info("Textual augmentation completed....")
-logging.info("Number of Silver pairs generated = {}".format(len(silver_samples)))
+logging.info("Number of silver pairs generated: {}".format(len(silver_samples)))
 
 ###################################################################
 #
@@ -137,7 +141,7 @@ logging.info("Number of Silver pairs generated = {}".format(len(silver_samples))
 #
 ###################################################################
 
-logging.info("Read STSbenchmark gold and silver training dataset")
+logging.info("Read STSbenchmark (gold + silver) training dataset")
 train_dataset = SentencesDataset(gold_samples + silver_samples, model)
 train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size)
 train_loss = losses.CosineSimilarityLoss(model=model)

@@ -1,20 +1,16 @@
 """
-The script shows how to train Augmented SBERT (In-Domain) strategy for STSb dataset.
+The script shows how to train Augmented SBERT (In-Domain) strategy for STSb dataset with Semantic Search Sampling.
+For Simplicity, we use a pre-trained SBERT (bert-base-nli-stsb-mean-tokens) for the example shown below. 
+In theory, you can also train a bi-encoder (SBERT) on STSb gold dataset and use for semantic search.
 
-Sentence-pair combinations are sampled via the Semantic Search algorithm.
-For Simplicity, we use a pretrained SBERT for Semantic Search. 
+Methodology:
+Three steps are followed for AugSBERT data-augmentation strategy with Semantic Search - 
+    1. Fine-tune cross-encoder (BERT) on gold STSb dataset
+    2. Fine-tuned Cross-encoder is used to label on Sem. Search sampled unlabeled pairs (silver STSb dataset) 
+    3. Bi-encoder (SBERT) is finally fine-tuned on both gold + silver STSb dataset
 
-In theory you can also train a Bi-Encoder (SBERT) on STSb dataset and use this for semantic search, like 
-mentioned in the paper - 
+Citations:
 
-Three consecutives steps to be followed for AugSBERT data-augmentation strategy with Sem. Search - 
-
-1. Fine-tune cross-encoder (BERT) on gold STSb dataset
-2. Fine-tuned Cross-encoder is used to label on Semantic Search sampled unlabeled pairs (silver STSb dataset) 
-3. Bi-encoder (SBERT) is finally fine-tuned on both gold + silver STSb dataset
-
-
-For more details you can refer - cite paper
 
 Usage:
 python sts_indomain_semantic.py
@@ -185,7 +181,9 @@ for idx in range(len(sentences)):
             duplicates.add((idx,iid))
 
 progress.reset()
+progress.close()
 
+logging.info("Length of silver_dataset generated: {}".format(len(silver_data)))
 logging.info("Step 2.2: Label STSbenchmark (silver dataset) with cross-encoder: {}".format(model_name))
 cross_encoder = CrossEncoder(cross_encoder_path)
 silver_scores = cross_encoder.predict(silver_data)

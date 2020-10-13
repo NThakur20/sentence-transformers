@@ -1,15 +1,16 @@
 """
-This example is identical to ("/examples/training/sts/training_stsbenchmark.py") with seed optimization. 
+This script is identical to examples/training/sts/training_stsbenchmark.py with seed optimization.
+We apply early stopping and evaluate the models over the dev set, to find out the best perfoming seeds.
 
-Methodology:
+For more details refer to -
 Fine-Tuning Pretrained Language Models:
 Weight Initializations, Data Orders, and Early Stopping by Dodge et al. 2020 
 https://arxiv.org/pdf/2002.06305.pdf
 
-Seed Optimization:
+Why Seed Optimization?
 Dodge et al. (2020) show a high dependence on the random seed for transformer based models like BERT, 
-as it converges to different minima that generalize differently to unseen data.
-This is especially the case for small training datasets.
+as it converges to different minima that generalize differently to unseen data. This is especially the 
+case for small training datasets. 
 
 Usage:
 python training_sts_seed_optimization.py
@@ -69,7 +70,7 @@ for seed in range(seed_count):
     # Read the dataset
     train_batch_size = 16
     num_epochs = 1
-    model_save_path = 'output/training_stsbenchmark_'+ model_name + '/seed-'+ str(seed)
+    model_save_path = 'output/bi-encoder/training_stsbenchmark_'+ model_name + '/seed-'+ str(seed)
 
     # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
     word_embedding_model = models.Transformer(model_name)
